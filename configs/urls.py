@@ -15,18 +15,11 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.urls import path
-from first.views import FirstView, SecondView
-from users.views import UserListCreateView
+from django.urls import path, include
+
+from apps.pizza.views import PizzaListCreateView
 
 urlpatterns = [
-    path("first/", FirstView.as_view()),
-    path("second/<int:age>/<str:name>/<slug:asd>", SecondView.as_view()),
-
-    path("user/", UserListCreateView.as_view()),
-
-
-
-
+    path("pizzas/", include('apps.pizza.urls')),
 
 ]
