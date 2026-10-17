@@ -20,11 +20,12 @@ from django.urls import path, include
 from apps.pizza.views import PizzaListCreateView
 
 from django.contrib import admin  # Импортируем стандартную панель администратора Django
-from django.urls import path, \
-    include  # Импортируем функции path (для создания маршрута) и include (для подключения других файлов маршрутов)
+from django.urls import path, include  # Импортируем функции path (для создания маршрута) и include (для подключения других файлов маршрутов)
 
 urlpatterns = [  # список всех маршрутов проекта
     path('admin/', admin.site.urls),  # Стандартный путь для входа
 
-    path('pizzas/', include('apps.pizza.urls')),  # Подключаем маршруты приложения pizza
+    # Роль include(): передает обработку маршрутов в другой файл (apps.pizza.urls), чтобы не захламлять главный файл.
+    # Роль префикса 'pizzas/': все маршруты из подключенного файла будут автоматически начинаться с 'pizzas/' (например, /pizzas/ и /pizzas/<id>/).
+    path('pizzas/', include('apps.pizza.urls')),
 ]
