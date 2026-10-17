@@ -1,18 +1,19 @@
-from django.core.exceptions import ValidationError  # Импортируем класс ошибки для случаев, когда переданы неверные данные
-from django.http import QueryDict  # Импортируем тип данных, в котором Django хранит параметры из URL
+from rest_framework.exceptions import ValidationError  # импортируем ошибку из DRF, а не из встроенного Django
+from django.http import QueryDict  # Импортируем тип данных словаря, в котором хранятся параметры URL
+from django.db.models import QuerySet  # импортируем тип QuerySet (он означает список объектов из базы)
 
-from apps.pizza.models import PizzaModel  # Импортируем нашу модель пиццы, чтобы взаимодействовать с базой данных
+from apps.pizza.models import PizzaModel  # Импортируем нашу модель пиццы
 
-def filter_pizza(query: QueryDict)-> QueryDict:  # Создаем функцию фильтра, которая принимает параметры из запроса
-    qs = PizzaModel.objects.all()  # Делаем запрос к БД: получаем все пиццы
+def filter_pizza(query: QueryDict) -> QuerySet:  # функция возвращает список записей
+    qs = PizzaModel.objects.all()  # Делаем базовый запрос: получаем абсолютно все пиццы из базы данных
 
-    for k, v, in query.items():  # Запускаем цикл по всем переданным параметрам (k - название фильтра, v - его значение)
+    for k, v in query.items():  # Запускаем цикл по всем переданным параметрам
         match k:  # Проверяем название параметра
-            case 'price_gt':  # Если параметр называется 'price_gt' (цена больше)
-                qs = qs.filter(price__gt=v)  # Оставляем в списке только те пиццы, цена которых строго больше значения v
-            case 'price_lt':  # Если параметр называется 'price_lt' (цена меньше)
-                qs = qs.filter(price__lt=v)  # Оставляем в списке только те пиццы, цена которых строго меньше значения v
-            case _:  # Во всех остальных случаях (если передали неизвестный параметр)
-                raise ValidationError({'detail':f'"{k}" not allowed'})  # Вызываем ошибку валидации и прерываем работу, сообщая, что параметр запрещен
+            case 'price_gt':  # Если параметр называется "цена больше чем"
+                qs = qs.filter(price__gt=v)  # Фильтруем: оставляем только те, что дороже v
+            case 'price_lt':  # Если параметр называется "цена меньше чем"
+                qs = qs.filter(price__lt=v)  # Фильтруем: оставляем только те, что дешевле v
+            case _:  # Если прислали любой другой (неразрешенный) параметр
+                raise ValidationError({'detail': f'"{k}" not allowed'})  # Выбрасываем ошибку валидации из DRF
 
-    return qs  # Возвращаем итоговый отфильтрованный список пицц (QuerySet), готовый к отправке пользователю
+    return qs  # Возвращаем итоговый отфильтрованный список пицц
