@@ -1,19 +1,78 @@
-from rest_framework.request import Request  # Импортируем тип запроса из DRF для аннотации
-from apps.pizza.filter import filter_pizza  # Импортируем нашу исправленную функцию фильтрации
-from apps.pizza.models import PizzaModel  # Импортируем модель пиццы для базового запроса
-from apps.pizza.serializers import PizzaSerializer  # Импортируем сериализатор для перевода данных в JSON
-from rest_framework.generics import RetrieveUpdateDestroyAPIView, ListCreateAPIView  # Импортируем мощные готовые классы DRF
+from rest_framework import status
+from rest_framework.generics import GenericAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.mixins import (
+    CreateModelMixin,
+    DestroyModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+)
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-class PizzaListCreateView(ListCreateAPIView):  # Класс "из коробки" сам обрабатывает GET (выдача списка) и POST (создание). Сам отдает статусы 200 OK и 201 Created.
-    serializer_class = PizzaSerializer  # Указываем сериализатор, который "из коробки" будет проверять и конвертировать данные
+from apps.pizza.filter import filter_pizza
+from apps.pizza.models import PizzaModel
+from apps.pizza.serializers import PizzaSerializer
 
-    def get_queryset(self):  # Метод "из коробки", мы его переопределяем, чтобы не просто выдать все пиццы, а применить фильтр
-        request: Request = self.request  # Получаем текущий запрос (в нём лежат параметры из адресной строки)
-        return filter_pizza(request.query_params)  # Передаем эти параметры в нашу функцию и возвращаем отфильтрованный результат
+# --- ВАРИАНТ 1: Ручной APIView ---
+# Отличие: Здесь всё делается полностью вручную. Мы сами пишем функции get и post,
+# сами ищем пиццу в базе (try-except), сами вызываем сохранение. Кода получается очень много.
+
+# class PizzaListCreateView(APIView):
+#     def get(self, request: Request, *args, **kwargs):
+#         qs = filter_pizza(request.query_params)
+#         serializer = PizzaSerializer(qs, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+#
+#     def post(self, request, *args, **kwargs):
+#         serializer = PizzaSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+#
+# class PizzaRetrieveUpdateDestroyView(APIView):
+#     def get(self, request, pk, *args, **kwargs):
+#         try:
+#             pizza = PizzaModel.objects.get(pk=pk)
+#         except PizzaModel.DoesNotExist:
+#             return Response({'detail': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+#         serializer = PizzaSerializer(pizza)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class PizzaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):  # Класс "из коробки" сам обрабатывает GET (одна запись), PUT (обновление) и DELETE (удаление).
-    # "Из коробки" использует метод get_object(), чтобы найти пиццу по ID из URL. Сам выдает статусы 200 OK, 204 No Content или 404 Not Found.
-    serializer_class = PizzaSerializer  # Указываем сериализатор для работы с одной записью
-    queryset = PizzaModel.objects.all()  # Базовый запрос, внутри которого метод get_object() будет искать нужную пиццу
-    http_method_names = ['get', 'put', 'delete']  # Явно разрешаем принимать только эти три метода
+# --- ВАРИАНТ 2: GenericAPIView + Mixins ---
+# Отличие: Часть работы автоматизирована. За сохранение и выдачу отвечают готовые миксины,
+# поэтому мы просто вызываем super().list() или super().create().
+# Но мы всё ещё вынуждены вручную привязывать методы HTTP (def get) к этим миксинам.
+
+# class PizzaListCreateView(GenericAPIView, ListModelMixin, CreateModelMixin):
+#     serializer_class = PizzaSerializer
+#     def get_queryset(self):
+#         return filter_pizza(self.request.query_params)
+#     def get(self, request, *args, **kwargs):
+#         return super().list(request, *args, **kwargs)
+#     def post(self, request, *args, **kwargs):
+#         return super().create(request, *args, **kwargs)
+
+
+# --- ВАРИАНТ 3: Готовые Generic Views (Финальный) ---
+# Отличие: Максимальная автоматизация. Эти классы "из коробки" знают, что делать с GET и POST.
+# Нам нужно указать им модель и сериализатор, остальное работает само.
+
+class PizzaListCreateView(ListCreateAPIView):
+    # Класс "из коробки" сам выдает список (GET) и создает записи (POST), проставляя нужные статусы (200, 201).
+    serializer_class = PizzaSerializer
+
+    def get_queryset(self):
+        # Заменяем стандартный поиск объектов, чтобы прикрутить нашу кастомную функцию фильтрации
+        request: Request = self.request
+        return filter_pizza(request.query_params)
+
+
+class PizzaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    # Класс "из коробки" сам обрабатывает чтение, обновление и удаление одной записи.
+    # Сам берет ID из ссылки и выдает ошибку 404, если пицца не найдена в базе.
+    serializer_class = PizzaSerializer
+    queryset = PizzaModel.objects.all()
+    http_method_names = ['get', 'put', 'delete']
