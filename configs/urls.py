@@ -15,17 +15,17 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.urls import path, include
-
-from apps.pizza.views import PizzaListCreateView
-
 from django.contrib import admin  # Импортируем стандартную панель администратора Django
-from django.urls import path, include  # Импортируем функции path (для создания маршрута) и include (для подключения других файлов маршрутов)
+from django.urls import (  # Импортируем функции path (для создания маршрута) и include (для подключения других файлов маршрутов)
+    include,
+    path,
+)
 
 urlpatterns = [  # список всех маршрутов проекта
-    path('admin/', admin.site.urls),  # Стандартный путь для входа
 
     # Роль include(): передает обработку маршрутов в другой файл (apps.pizza.urls), чтобы не захламлять главный файл.
     # Роль префикса 'pizzas/': все маршруты из подключенного файла будут автоматически начинаться с 'pizzas/' (например, /pizzas/ и /pizzas/<id>/).
     path('pizzas/', include('apps.pizza.urls')),
+
+    path('pizza_shops', include('apps.pizza_shop.urls')),
 ]

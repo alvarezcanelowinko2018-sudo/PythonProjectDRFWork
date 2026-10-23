@@ -1,8 +1,10 @@
-from rest_framework.exceptions import ValidationError  # импортируем ошибку из DRF, а не из встроенного Django
-from django.http import QueryDict  # Импортируем тип данных словаря, в котором хранятся параметры URL
 from django.db.models import QuerySet  # импортируем тип QuerySet (он означает список объектов из базы)
+from django.http import QueryDict  # Импортируем тип данных словаря, в котором хранятся параметры URL
+
+from rest_framework.exceptions import ValidationError  # импортируем ошибку из DRF, а не из встроенного Django
 
 from apps.pizza.models import PizzaModel  # Импортируем нашу модель пиццы
+
 
 def filter_pizza(query: QueryDict) -> QuerySet:  # функция возвращает список записей
     qs = PizzaModel.objects.all()  # Делаем базовый запрос: получаем абсолютно все пиццы из базы данных
